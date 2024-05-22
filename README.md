@@ -1,6 +1,6 @@
 HTML to Excel Data Extraction and Insertion.
 
-This program is specifically designed for helping to keep track of custom ACM files but could be easily adjusted for a similar use-case.
+This program is specifically designed for OUR setup. Helping to keep track of custom ACM files, but could be easily adjusted for a similar use-case.
 
 Overview
 
