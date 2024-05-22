@@ -1,4 +1,7 @@
-HTML to Excel Data Extraction and Insertion
+HTML to Excel Data Extraction and Insertion.
+
+This program is specifically designed for helping to keep track of custom ACM files but could be easily adjusted for a similar use-case.
+
 Overview
 
 This project provides a Python application that extracts specific data points from an HTML file and inserts the data into a specified Excel file. The application includes a graphical user interface (GUI) to facilitate file selection.
@@ -18,7 +21,7 @@ Requirements
   - beautifulsoup4
   - openpyxl
 
-## Installation
+Installation
 
 1. **Clone the repository**:
    ```bash
