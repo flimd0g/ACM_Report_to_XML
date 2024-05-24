@@ -1,15 +1,20 @@
 import tkinter as tk
-from tkinter import filedialog
+from tkinter import filedialog, messagebox
 from bs4 import BeautifulSoup
 import openpyxl
+from openpyxl.styles import Alignment
 import os
-
 
 def select_file():
     file_path = filedialog.askopenfilename(filetypes=[("HTML files", "*.html")])
-    if file_path:
-        process_file(file_path)
-
+    job_number = job_number_entry.get()
+    if file_path and job_number:
+        try:
+            process_file(file_path, job_number)
+            messagebox.showinfo("Success", "Excel file updated successfully.")
+            root.destroy()  # Close the GUI after success
+        except Exception as e:
+            messagebox.showerror("Error", f"An error occurred: {e}")
 
 def parse_html(file_path):
     with open(file_path, 'r', encoding='utf-8') as file:
@@ -17,7 +22,7 @@ def parse_html(file_path):
 
     # Define the keys to extract
     keys_to_extract = [
-        'ACM version', 'ACM diagnosis version', 'ACM VIN', 'ACM serial number',
+        'ACM hardware class', 'ACM version', 'ACM diagnosis version', 'ACM VIN', 'ACM serial number',
         'ACM hardware part number', 'ACM certification', 'ACM hardware version'
     ]
 
@@ -29,8 +34,11 @@ def parse_html(file_path):
         cells = row.find_all('td')
         if len(cells) == 2:
             key = cells[0].get_text(strip=True)
+            value = cells[1].get_text(strip=True)
+            if key == 'ACM diagnosis version':
+                value = value.lstrip('0')  # Remove leading zeros
             if key in extracted_values:
-                extracted_values[key] = cells[1].get_text(strip=True)
+                extracted_values[key] = value
 
     # Debug print to check extracted data
     for key, value in extracted_values.items():
@@ -38,24 +46,24 @@ def parse_html(file_path):
 
     return extracted_values
 
-
-def update_excel(extracted_values, excel_path):
+def update_excel(extracted_values, job_number, excel_path):
     if not os.path.isfile(excel_path):
-        print(f"Excel file not found: {excel_path}")
-        return
+        raise FileNotFoundError(f"Excel file not found: {excel_path}")
 
     wb = openpyxl.load_workbook(excel_path)
     ws = wb.active  # Or specify the sheet name: wb['SheetName']
 
     # Header mapping: Map the keys to the actual column headers in the Excel file
     header_mapping = {
+        'ACM hardware class': 'Hardware Class',
         'ACM version': 'Version',
         'ACM diagnosis version': 'Diagnosis Version',
         'ACM VIN': 'Vin',
         'ACM serial number': 'Serial Number',
         'ACM hardware part number': 'Part Number',
         'ACM certification': 'Certification',
-        'ACM hardware version': 'Hardware Version'
+        'ACM hardware version': 'Hardware Version',
+        'Job number': 'Fixably No.'
     }
 
     # Identify the header row
@@ -68,8 +76,7 @@ def update_excel(extracted_values, excel_path):
             break
 
     if not header_row_index:
-        print("Header row not found in the Excel sheet")
-        return
+        raise ValueError("Header row not found in the Excel sheet")
 
     # Find the correct column indices based on headers
     headers = {cell.value: cell.column for cell in ws[header_row_index]}
@@ -78,8 +85,10 @@ def update_excel(extracted_values, excel_path):
     # Check if all required columns are present
     for key in extracted_values.keys():
         if header_mapping[key] not in headers:
-            print(f"Column for '{key}' not found in the Excel sheet")
-            return
+            raise ValueError(f"Column for '{key}' not found in the Excel sheet")
+
+    # Add job number to the extracted values
+    extracted_values['Job number'] = job_number
 
     # Find the lowest ID number with an otherwise empty row
     target_row = None
@@ -92,33 +101,35 @@ def update_excel(extracted_values, excel_path):
                 break
 
     if target_row is None:
-        print("No suitable row found for updating")
-        return
+        raise ValueError("No suitable row found for updating")
 
     # Insert values into the identified row
     for key, value in extracted_values.items():
-        ws.cell(row=target_row, column=headers[header_mapping[key]], value=value)
+        cell = ws.cell(row=target_row, column=headers[header_mapping[key]], value=value)
+        cell.alignment = Alignment(horizontal='center', vertical='center')  # Center-align the cell
 
     wb.save(excel_path)
     wb.close()
-    print(f"Excel file '{excel_path}' updated successfully.")
 
-
-def process_file(file_path):
+def process_file(file_path, job_number):
     extracted_values = parse_html(file_path)
-    excel_path = '/Users/finleybrown/Documents/Work Docs CVE/Copies/Unit Assessment ACM--PC copy.xlsx'  # Update this with your actual file path
-    update_excel(extracted_values, excel_path)
+    excel_path = r'C:\Users\User\OneDrive\Documents\ACM2_2.1\Unit Assessment ACM--PC.xlsx'
+    update_excel(extracted_values, job_number, excel_path)
 
-
+# GUI Setup
 root = tk.Tk()
 root.title("HTML to Excel")
 
 frame = tk.Frame(root, padx=10, pady=10)
 frame.pack(padx=10, pady=10)
 
-select_button = tk.Button(frame, text="Select HTML File", command=select_file)
+job_number_label = tk.Label(frame, text="Job number:")
+job_number_label.pack()
+
+job_number_entry = tk.Entry(frame)
+job_number_entry.pack()
+
+select_button = tk.Button(frame, text="Select fault report", command=select_file)
 select_button.pack()
 
 root.mainloop()
-
-
