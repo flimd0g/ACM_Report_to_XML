@@ -31,10 +31,11 @@ def select_excel_file():
 def select_file():
     file_path = filedialog.askopenfilename(filetypes=[("HTML files", "*.html")])
     job_number = job_number_entry.get()
+    vehicle_type = vehicle_type_var.get()
     excel_path = excel_file_entry.get()
-    if file_path and job_number and excel_path:
+    if file_path and job_number and vehicle_type and excel_path:
         try:
-            process_file(file_path, job_number, excel_path)
+            process_file(file_path, job_number, vehicle_type, excel_path)
             messagebox.showinfo("Success", "Excel file updated successfully.")
             root.destroy()  # Close the GUI after success
         except Exception as e:
@@ -67,7 +68,7 @@ def parse_html(file_path):
 
     return extracted_values
 
-def update_excel(extracted_values, job_number, excel_path):
+def update_excel(extracted_values, job_number, vehicle_type, excel_path):
     if not os.path.isfile(excel_path):
         raise FileNotFoundError(f"Excel file not found: {excel_path}")
 
@@ -83,7 +84,8 @@ def update_excel(extracted_values, job_number, excel_path):
         'ACM hardware part number': 'Part Number',
         'ACM certification': 'Certification',
         'ACM hardware version': 'Hardware Version',
-        'Job number': 'Fixably No.'
+        'Job number': 'Fixably No.',
+        'Vehicle Type': 'Vehicle Type'
     }
 
     header_row_index = None
@@ -105,6 +107,7 @@ def update_excel(extracted_values, job_number, excel_path):
             raise ValueError(f"Column for '{key}' not found in the Excel sheet")
 
     extracted_values['Job number'] = job_number
+    extracted_values['Vehicle Type'] = vehicle_type
 
     target_row = None
     for row in ws.iter_rows(min_row=header_row_index + 1):
@@ -125,9 +128,9 @@ def update_excel(extracted_values, job_number, excel_path):
     wb.save(excel_path)
     wb.close()
 
-def process_file(file_path, job_number, excel_path):
+def process_file(file_path, job_number, vehicle_type, excel_path):
     extracted_values = parse_html(file_path)
-    update_excel(extracted_values, job_number, excel_path)
+    update_excel(extracted_values, job_number, vehicle_type, excel_path)
 
 # GUI Setup
 root = tk.Tk()
@@ -146,6 +149,14 @@ job_number_label.pack()
 
 job_number_entry = tk.Entry(main_frame)
 job_number_entry.pack()
+
+vehicle_type_label = tk.Label(main_frame, text="Vehicle Type:")
+vehicle_type_label.pack()
+
+vehicle_type_var = tk.StringVar()
+vehicle_type_dropdown = ttk.Combobox(main_frame, textvariable=vehicle_type_var)
+vehicle_type_dropdown['values'] = ("Truck", "Bus", "Off-Highway", "International")
+vehicle_type_dropdown.pack()
 
 select_button = tk.Button(main_frame, text="Select fault report", command=select_file)
 select_button.pack()
